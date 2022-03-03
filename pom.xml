@@ -499,8 +499,8 @@
                                 <gradleProjectDirectory>${main.dir}/packaging/${pkg.type}</gradleProjectDirectory>
                                 <tasks>
                                     <task>build</task>
-                                    <task>buildDeb</task>
-                                    <task>buildRpm</task>
+<!--                                    <task>buildDeb</task>-->
+<!--                                    <task>buildRpm</task>-->
                                 </tasks>
                                 <args>
                                     <arg>-PpackagingDir=${main.dir}/packaging</arg>
