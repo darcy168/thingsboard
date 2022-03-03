@@ -12,6 +12,7 @@ ThingsBoard documentation is hosted on [thingsboard.io](https://thingsboard.io/d
 
 ## IoT use cases
 
+
 [**Smart energy**](https://thingsboard.io/smart-energy/)
 [![Smart energy](https://user-images.githubusercontent.com/8308069/152984256-eb48564a-645c-468d-912b-f554b63104a5.gif "Smart energy")](https://thingsboard.io/smart-energy/)
 
