@@ -7,7 +7,7 @@
         </encoder>
     </appender>
 
-    <logger name="org.thingsboard.server.cache" level="TRACE"/>
+    <logger name="org.thingsboard.server.cache" level="debug"/>
 
     <root level="INFO">
         <appender-ref ref="console"/>
