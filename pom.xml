@@ -142,7 +142,7 @@
         <module>rule-engine</module>
         <module>dao</module>
         <module>transport</module>
-        <module>ui-ngx</module>
+<!--        <module>ui-ngx</module>-->
         <module>tools</module>
         <module>application</module>
         <module>msa</module>
@@ -527,46 +527,46 @@
                                 </execution>
                             </executions>
                         </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-assembly-plugin</artifactId>
-                            <configuration>
-                                <finalName>${pkg.name}</finalName>
-                                <descriptors>
-                                    <descriptor>${main.dir}/packaging/${pkg.type}/assembly/windows.xml</descriptor>
-                                </descriptors>
-                            </configuration>
-                            <executions>
-                                <execution>
-                                    <id>assembly</id>
-                                    <phase>${pkg.package.phase}</phase>
-                                    <goals>
-                                        <goal>single</goal>
-                                    </goals>
-                                </execution>
-                            </executions>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-install-plugin</artifactId>
-                            <configuration>
-                                <file>${project.build.directory}/${pkg.name}.deb</file>
-                                <artifactId>${project.artifactId}</artifactId>
-                                <groupId>${project.groupId}</groupId>
-                                <version>${project.version}</version>
-                                <classifier>deb</classifier>
-                                <packaging>deb</packaging>
-                            </configuration>
-                            <executions>
-                                <execution>
-                                    <id>install-deb</id>
-                                    <phase>${pkg.package.phase}</phase>
-                                    <goals>
-                                        <goal>install-file</goal>
-                                    </goals>
-                                </execution>
-                            </executions>
-                        </plugin>
+<!--                        <plugin>-->
+<!--                            <groupId>org.apache.maven.plugins</groupId>-->
+<!--                            <artifactId>maven-assembly-plugin</artifactId>-->
+<!--                            <configuration>-->
+<!--                                <finalName>${pkg.name}</finalName>-->
+<!--                                <descriptors>-->
+<!--                                    <descriptor>${main.dir}/packaging/${pkg.type}/assembly/windows.xml</descriptor>-->
+<!--                                </descriptors>-->
+<!--                            </configuration>-->
+<!--                            <executions>-->
+<!--                                <execution>-->
+<!--                                    <id>assembly</id>-->
+<!--                                    <phase>${pkg.package.phase}</phase>-->
+<!--                                    <goals>-->
+<!--                                        <goal>single</goal>-->
+<!--                                    </goals>-->
+<!--                                </execution>-->
+<!--                            </executions>-->
+<!--                        </plugin>-->
+<!--                        <plugin>-->
+<!--                            <groupId>org.apache.maven.plugins</groupId>-->
+<!--                            <artifactId>maven-install-plugin</artifactId>-->
+<!--                            <configuration>-->
+<!--                                <file>${project.build.directory}/${pkg.name}.deb</file>-->
+<!--                                <artifactId>${project.artifactId}</artifactId>-->
+<!--                                <groupId>${project.groupId}</groupId>-->
+<!--                                <version>${project.version}</version>-->
+<!--                                <classifier>deb</classifier>-->
+<!--                                <packaging>deb</packaging>-->
+<!--                            </configuration>-->
+<!--                            <executions>-->
+<!--                                <execution>-->
+<!--                                    <id>install-deb</id>-->
+<!--                                    <phase>${pkg.package.phase}</phase>-->
+<!--                                    <goals>-->
+<!--                                        <goal>install-file</goal>-->
+<!--                                    </goals>-->
+<!--                                </execution>-->
+<!--                            </executions>-->
+<!--                        </plugin>-->
                     </plugins>
                 </pluginManagement>
             </build>
