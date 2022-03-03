@@ -43,7 +43,7 @@
 <!--        <module>js-executor</module>-->
 <!--        <module>web-ui</module>-->
 <!--        <module>tb-node</module>-->
-        <module>transport</module>
+<!--        <module>transport</module>-->
     </modules>
 
     <profiles>
