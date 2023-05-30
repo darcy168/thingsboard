@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2022 The Thingsboard Authors
+ * Copyright © 2016-2023 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.leshan.core.ResponseCode;
 import org.eclipse.leshan.core.model.ObjectModel;
@@ -32,10 +34,12 @@ import org.eclipse.leshan.core.node.LwM2mPath;
 import org.eclipse.leshan.core.node.LwM2mResource;
 import org.eclipse.leshan.core.node.LwM2mResourceInstance;
 import org.eclipse.leshan.core.node.LwM2mSingleResource;
+import org.eclipse.leshan.core.node.codec.LwM2mValueConverter;
 import org.eclipse.leshan.core.observation.Observation;
 import org.eclipse.leshan.core.request.CreateRequest;
 import org.eclipse.leshan.core.request.ObserveRequest;
 import org.eclipse.leshan.core.request.ReadRequest;
+import org.eclipse.leshan.core.request.SendRequest;
 import org.eclipse.leshan.core.request.WriteCompositeRequest;
 import org.eclipse.leshan.core.request.WriteRequest;
 import org.eclipse.leshan.core.request.WriteRequest.Mode;
@@ -50,10 +54,10 @@ import org.thingsboard.common.util.DonAsynchron;
 import org.thingsboard.server.common.data.Device;
 import org.thingsboard.server.common.data.DeviceProfile;
 import org.thingsboard.server.common.data.StringUtils;
+import org.thingsboard.server.common.data.device.profile.Lwm2mDeviceProfileTransportConfiguration;
 import org.thingsboard.server.common.data.device.profile.lwm2m.ObjectAttributes;
 import org.thingsboard.server.common.data.device.profile.lwm2m.OtherConfiguration;
 import org.thingsboard.server.common.data.device.profile.lwm2m.TelemetryMappingConfiguration;
-import org.thingsboard.server.common.data.device.profile.Lwm2mDeviceProfileTransportConfiguration;
 import org.thingsboard.server.common.data.id.DeviceId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.ota.OtaPackageUtil;
@@ -92,8 +96,8 @@ import org.thingsboard.server.transport.lwm2m.server.model.LwM2MModelConfigServi
 import org.thingsboard.server.transport.lwm2m.server.ota.LwM2MOtaUpdateService;
 import org.thingsboard.server.transport.lwm2m.server.session.LwM2MSessionManager;
 import org.thingsboard.server.transport.lwm2m.server.store.TbLwM2MDtlsSessionStore;
-import org.thingsboard.server.transport.lwm2m.utils.LwM2MTransportUtil;
 import org.thingsboard.server.transport.lwm2m.server.store.TbLwM2mSecurityStore;
+import org.thingsboard.server.transport.lwm2m.utils.LwM2MTransportUtil;
 import org.thingsboard.server.transport.lwm2m.utils.LwM2mValueConverterImpl;
 
 import javax.annotation.PostConstruct;
@@ -113,8 +117,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static org.thingsboard.common.util.CollectionsUtil.diffSets;
 import static org.thingsboard.server.common.data.lwm2m.LwM2mConstants.LWM2M_SEPARATOR_PATH;
+import static org.thingsboard.server.common.data.util.CollectionsUtil.diffSets;
 import static org.thingsboard.server.transport.lwm2m.server.ota.DefaultLwM2MOtaUpdateService.FW_3_VER_ID;
 import static org.thingsboard.server.transport.lwm2m.server.ota.DefaultLwM2MOtaUpdateService.FW_DELIVERY_METHOD;
 import static org.thingsboard.server.transport.lwm2m.server.ota.DefaultLwM2MOtaUpdateService.FW_NAME_ID;
@@ -135,69 +139,41 @@ import static org.thingsboard.server.transport.lwm2m.utils.LwM2MTransportUtil.fr
 
 
 @Slf4j
-@Service
+@Service("lwM2mUplinkMsgHandler")
 @TbLwM2mTransportComponent
+@RequiredArgsConstructor
 public class DefaultLwM2mUplinkMsgHandler extends LwM2MExecutorAwareService implements LwM2mUplinkMsgHandler {
 
-    public LwM2mValueConverterImpl converter;
+    @Getter
+    private final LwM2mValueConverter converter = LwM2mValueConverterImpl.getInstance();;
 
     private final TransportService transportService;
     private final LwM2mTransportContext context;
+    @Lazy
     private final LwM2MAttributesService attributesService;
     private final LwM2MSessionManager sessionManager;
+    @Lazy
     private final LwM2MOtaUpdateService otaService;
     private final LwM2MTransportServerConfig config;
     private final LwM2MTelemetryLogService logService;
     private final LwM2mTransportServerHelper helper;
     private final TbLwM2MDtlsSessionStore sessionStore;
     private final LwM2mClientContext clientContext;
-    private final LwM2mDownlinkMsgHandler defaultLwM2MDownlinkMsgHandler;
+    private final LwM2mDownlinkMsgHandler defaultLwM2MDownlinkMsgHandler; //Do not use Lazy because we need live executor to handle msgs
     private final LwM2mVersionedModelProvider modelProvider;
     private final RegistrationStore registrationStore;
     private final TbLwM2mSecurityStore securityStore;
     private final LwM2MModelConfigService modelConfigService;
 
-    public DefaultLwM2mUplinkMsgHandler(TransportService transportService,
-                                        LwM2MTransportServerConfig config,
-                                        LwM2mTransportServerHelper helper,
-                                        LwM2mClientContext clientContext,
-                                        LwM2MTelemetryLogService logService,
-                                        LwM2MSessionManager sessionManager,
-                                        @Lazy LwM2MOtaUpdateService otaService,
-                                        @Lazy LwM2MAttributesService attributesService,
-                                        @Lazy LwM2mDownlinkMsgHandler defaultLwM2MDownlinkMsgHandler,
-                                        LwM2mTransportContext context,
-                                        TbLwM2MDtlsSessionStore sessionStore,
-                                        LwM2mVersionedModelProvider modelProvider,
-                                        RegistrationStore registrationStore,
-                                        TbLwM2mSecurityStore securityStore,
-                                        LwM2MModelConfigService modelConfigService) {
-        this.transportService = transportService;
-        this.sessionManager = sessionManager;
-        this.attributesService = attributesService;
-        this.otaService = otaService;
-        this.config = config;
-        this.helper = helper;
-        this.clientContext = clientContext;
-        this.logService = logService;
-        this.defaultLwM2MDownlinkMsgHandler = defaultLwM2MDownlinkMsgHandler;
-        this.context = context;
-        this.sessionStore = sessionStore;
-        this.modelProvider = modelProvider;
-        this.registrationStore = registrationStore;
-        this.securityStore = securityStore;
-        this.modelConfigService = modelConfigService;
-    }
-
     @PostConstruct
     public void init() {
         super.init();
         this.context.getScheduler().scheduleAtFixedRate(this::reportActivity, new Random().nextInt((int) config.getSessionReportTimeout()), config.getSessionReportTimeout(), TimeUnit.MILLISECONDS);
-        this.converter = LwM2mValueConverterImpl.getInstance();
     }
 
     @PreDestroy
     public void destroy() {
+        log.trace("Destroying {}", getClass().getSimpleName());
         super.destroy();
     }
 
@@ -347,12 +323,7 @@ public class DefaultLwM2mUplinkMsgHandler extends LwM2MExecutorAwareService impl
                     this.updateResourcesValue(lwM2MClient, lwM2mResource, path, Mode.UPDATE, responseCode);
                 }
             }
-            if (clientContext.awake(lwM2MClient)) {
-                // clientContext.awake calls clientContext.update
-                log.debug("[{}] Device is awake", lwM2MClient.getEndpoint());
-            } else {
-                clientContext.update(lwM2MClient);
-            }
+            tryAwake(lwM2MClient);
         }
     }
 
@@ -373,12 +344,37 @@ public class DefaultLwM2mUplinkMsgHandler extends LwM2MExecutorAwareService impl
                 }
             });
             clientContext.update(lwM2MClient);
-            if (clientContext.awake(lwM2MClient)) {
-                // clientContext.awake calls clientContext.update
-                log.debug("[{}] Device is awake", lwM2MClient.getEndpoint());
-            } else {
-                clientContext.update(lwM2MClient);
+            tryAwake(lwM2MClient);
+        }
+    }
+
+    /**
+     * Sending updated value to thingsboard from SendListener.dataReceived: object, instance, SingleResource or MultipleResource
+     *
+     * @param registration - Registration LwM2M Client
+     * @param sendRequest  - sendRequest
+     */
+    @Override
+    public void onUpdateValueWithSendRequest(Registration registration, SendRequest sendRequest) {
+        for(var entry : sendRequest.getNodes().entrySet()) {
+            LwM2mPath path = entry.getKey();
+            LwM2mNode node = entry.getValue();
+            LwM2mClient lwM2MClient = clientContext.getClientByEndpoint(registration.getEndpoint());
+            String stringPath = convertObjectIdToVersionedId(path.toString(), registration);
+            ObjectModel objectModelVersion = lwM2MClient.getObjectModel(stringPath, modelProvider);
+            if (objectModelVersion != null) {
+                if (node instanceof LwM2mObject) {
+                    LwM2mObject lwM2mObject = (LwM2mObject) node;
+                    this.updateObjectResourceValue(lwM2MClient, lwM2mObject, stringPath, 0);
+                } else if (node instanceof LwM2mObjectInstance) {
+                    LwM2mObjectInstance lwM2mObjectInstance = (LwM2mObjectInstance) node;
+                    this.updateObjectInstanceResourceValue(lwM2MClient, lwM2mObjectInstance, stringPath, 0);
+                } else if (node instanceof LwM2mResource) {
+                    LwM2mResource lwM2mResource = (LwM2mResource) node;
+                    this.updateResourcesValue(lwM2MClient, lwM2mResource, stringPath, Mode.UPDATE, 0);
+                }
             }
+            tryAwake(lwM2MClient);
         }
     }
 
@@ -948,6 +944,7 @@ public class DefaultLwM2mUplinkMsgHandler extends LwM2MExecutorAwareService impl
      *
      * @param lwM2MClient - LwM2M Client
      */
+    @Override
     public void initAttributes(LwM2mClient lwM2MClient, boolean logFailedUpdateOfNonChangedValue) {
         Map<String, String> keyNamesMap = this.getNamesFromProfileForSharedAttributes(lwM2MClient);
         if (!keyNamesMap.isEmpty()) {
@@ -989,4 +986,14 @@ public class DefaultLwM2mUplinkMsgHandler extends LwM2MExecutorAwareService impl
             client.unlock();
         }
     }
+
+    private void tryAwake(LwM2mClient lwM2MClient) {
+        if (clientContext.awake(lwM2MClient)) {
+            // clientContext.awake calls clientContext.update
+            log.debug("[{}] Device is awake", lwM2MClient.getEndpoint());
+        } else {
+            clientContext.update(lwM2MClient);
+        }
+    }
+
 }

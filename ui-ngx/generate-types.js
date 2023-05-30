@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016-2022 The Thingsboard Authors
+ * Copyright © 2016-2023 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 const child_process = require("child_process");
 const fs = require('fs');
 const path = require('path');
-const typeDir = './target/types';
-const srcDir = typeDir + '/src';
-const moduleMapPath = "src/app/modules/common/modules-map.ts";
+
+const typeDir = path.join('.', 'target', 'types');
+const srcDir = path.join('.', 'target', 'types', 'src');
+const moduleMapPath = path.join('src', 'app', 'modules', 'common', 'modules-map.ts');
+const ngcPath = path.join('.', 'node_modules', '.bin', 'ngc');
+const tsconfigPath = path.join('src', 'tsconfig.app.json');
 
 console.log(`Remove directory: ${typeDir}`);
 try {
@@ -28,7 +30,7 @@ try {
   console.error(`Remove directory error: ${err}`);
 }
 
-const cliCommand = `./node_modules/.bin/ngc --p src/tsconfig.app.json --declaration --outDir ${srcDir}`;
+const cliCommand = `${ngcPath} --p ${tsconfigPath} --declaration --outDir ${srcDir}`;
 console.log(cliCommand);
 try {
   child_process.execSync(cliCommand);
